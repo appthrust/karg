@@ -1,0 +1,35 @@
+# https://taskfile.dev
+
+version: '3'
+
+vars:
+  GREETING: Hello, World!
+  VERSION: '{{.VERSION | default "dev"}}'
+  CLI_ENTRY: './ts/cli/index.ts'
+
+tasks:
+  ci:
+    cmds:
+      - bun install --frozen-lockfile
+      - bunx tsc
+      - bunx biome ci --error-on-warnings
+      - bun test
+      - task: update-examples
+      - |
+        git diff --exit-code || {
+          echo "Generated files have changed. Please commit the changes."
+          exit 1
+        }
+
+  clean:
+    desc: Clean build artifacts
+    cmds:
+      - rm -rf dist
+
+  update-examples:
+    desc: Update example outputs from the input.yaml file
+    cmds:
+      - echo "Regenerating example outputs..."
+      - bun ts/cli/index.ts --input examples/input.yaml --output-file examples/single-file-output.md
+      - bun ts/cli/index.ts --input examples/input.yaml --output-directory examples/per-kind-output
+      - echo "✅ Example outputs updated successfully!"
